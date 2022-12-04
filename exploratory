@@ -9,14 +9,17 @@ ORDER by 3,4
 
 --SELECT data that we are going to be USING
 
-SELECT location,date, total_cases, new_cases, total_deaths, population
+SELECT 
+	location,date, total_cases, new_cases, total_deaths, population
 FROM CovidDeaths
 ORDER by 1,2
 
 -- looking at the total cases vs total deaths
 -- likelihood of dying by covid if you contract covid 
 
-SELECT location, date, total_cases, total_deaths, total_deaths*100/total_cases as percentage_death_cases
+SELECT 
+	location, date, total_cases, total_deaths, 
+	total_deaths*100/total_cases as percentage_death_cases
 FROM CovidDeaths
 WHERE location like "%africa%"
 ORDER by 5 DESC
@@ -25,7 +28,9 @@ ORDER by 5 DESC
 -- shows what percentage of population got covid
 
 CREATE VIEW PercentageInfectedPopulation_RSA as
-SELECT location, date, population, total_deaths, total_cases*100/population as percentage_infected_population
+SELECT 
+	location, date, population, total_deaths, 
+	total_cases*100/population as percentage_infected_population
 FROM CovidDeaths
 WHERE location like "%south africa%"
 ORDER by 4 DESC
@@ -63,7 +68,9 @@ ORDER by highest_death_count DESC
 
 -- global numbers
 
-SELECT sum(new_cases) as total_cases, sum(new_deaths) as total_deaths, sum(new_deaths)*100/sum(new_cases) as death_percentage 
+SELECT 
+	sum(new_cases) as total_cases, sum(new_deaths) as total_deaths, 
+	sum(new_deaths)*100/sum(new_cases) as death_percentage 
 FROM CovidDeaths
 WHERE continent is NOT NULL
 -- GROUP by date
@@ -72,7 +79,8 @@ ORDER by 1,2
 -- total population vs vaccination
 
 CREATE VIEW PercentPopulationVaccinated as
-SELECT  death.continent, death.location,death.date, death.population, vacc.new_vaccinations,
+SELECT  
+	death.continent, death.location,death.date, death.population, vacc.new_vaccinations,
 	sum(vacc.new_vaccinations) 
 	OVER (PARTITION by death.location ORDER by death.location, 
 	death.date) as rolling_people_vaccinated
@@ -87,7 +95,8 @@ ORDER by 2,3 DESC
 WITH PopvsVac (continent, location, date, population, new_vaccinations, rolling_people_vaccinated) 
 as
 (
-SELECT  death.continent, death.location,death.date, death.population, vacc.new_vaccinations,
+SELECT  
+	death.continent, death.location,death.date, death.population, vacc.new_vaccinations,
 	sum(vacc.new_vaccinations) 
 	OVER (PARTITION by death.location ORDER by death.location, 
 	death.date) as rolling_people_vaccinated
@@ -115,7 +124,8 @@ rolling_people_vaccinated NUMERIC
 )
 
 INSERT INTO percentPopulationVaccinated
-SELECT  death.continent, death.location,death.date, death.population, vacc.new_vaccinations,
+SELECT  
+	death.continent, death.location,death.date, death.population, vacc.new_vaccinations,
 	sum(vacc.new_vaccinations) 
 	OVER (PARTITION by death.location ORDER by death.location, 
 	death.date) as rolling_people_vaccinated	
@@ -129,3 +139,39 @@ SELECT *, rolling_people_vaccinated*100/population
 FROM percentPopulationVaccinated
 
 --
+
+/*
+TABLEAU TABLES
+*/
+
+
+SELECT 
+	sum(new_cases) as total_cases, sum(new_deaths) as total_deaths, 
+	sum(new_deaths)*100/sum(new_cases) as death_percentage 
+FROM CovidDeaths
+WHERE continent is NOT NULL
+ORDER by 1,2 
+
+
+SELECT 
+	location, population, max (total_cases) as highest_infection_count,  
+	max(total_cases/population)*100 as percentage_infected_population
+FROM CovidDeaths
+GROUP by location, population
+ORDER by percentage_infected_population 
+
+SELECT 
+	location, population, date, max (total_cases) as highest_infection_count,  
+	max(total_cases/population)*100 as percentage_infected_population
+FROM CovidDeaths
+GROUP by location, population, date
+ORDER by percentage_infected_population DESC
+
+SELECT
+	location, sum(new_deaths) as total_death_count
+FROM CovidDeaths
+WHERE continent is NULL
+AND location not in ('World','European Union', 'International')
+GROUP by location
+ORDER by total_death_count
+
